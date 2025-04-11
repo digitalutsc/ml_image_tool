@@ -4,6 +4,7 @@
 
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from tensorflow.keras.optimizers import Adam
 from tensorflow.keras import layers, models
 import os
 import cv2
@@ -115,13 +116,21 @@ model = models.Sequential([
 # Print model summary to inspect layer sizes
 model.summary()
 
+optimizer = Adam(
+    learning_rate=0.00020971521735191345,
+    beta_1=0.8999999761581421,
+    beta_2=0.9990000128746033,
+    epsilon=1e-07,
+    amsgrad=False
+)
+
 # Compile the model
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+model.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
 
 # EarlyStopping: Stops training when validation accuracy stops improving
 early_stopping = EarlyStopping(
     monitor='val_accuracy',  # Monitor validation accuracy
-    patience=4,  # Stop after 5 epochs of no improvement
+    patience=7,  # Stop after 5 epochs of no improvement
     restore_best_weights=True  # Restore the weights of the best epoch
 )
 
@@ -137,11 +146,11 @@ lr_scheduler = ReduceLROnPlateau(
 history = model.fit(
     train_preprocessed,
     steps_per_epoch=train_generator.samples // BATCH_SIZE,
-    epochs=80,  # Adjust number of epochs as needed
+    epochs=20,  # Adjust number of epochs as needed
     validation_data=validation_preprocessed,
     validation_steps=validation_generator.samples // BATCH_SIZE,
     callbacks=[early_stopping, lr_scheduler]  # Add callbacks here
 )
 
 # Save the model for future use
-model.save('4_rotations_384_canny_10th_NameChange_No2.h5')
+model.save('rever_engineer_7patienceCanny.h5')
