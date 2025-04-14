@@ -25,6 +25,9 @@ paged images are manual, and I haven't found a perfect automatic way to identify
 You may want to use this whenever the texts are too close to the central crease, or when the splitting lines are too close to the texts. After applying it, the reader
 can be more confident that the cut did not accidentally split texts on the pages.
 
+**What do you do after identifying and merging the poorly cut pages?** This online batch cropping tool is extremely fast and useful for this type of manual workflow. https://www.imgtools.co/crop-image
+Remember to duplicate the images before uploading and splitting them on this website so that you can cut the left and right versions of the page at once.
+
 ---
 
 ## 📂 File Structure
