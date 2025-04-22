@@ -8,14 +8,14 @@ Each script handles a distinct part of the image processing pipeline, from data 
 
 # 🤔 Why not merge all Python scripts into one automatic script?
 
-Some steps make mistakes, so human intervention, like QA steps, needs to be done periodically. In fact, this is why step 4 has its two branches in the
-picture below. One of them is used to split the image, while the other one is used to merge the images split incorrectly.
+Some steps make mistakes, so human intervention, like QA steps, needs to be done periodically. This is why step 4 has two branches, as shown in the
+picture below. One of them is used to split the image, while the other one is used to merge the images that have been processed incorrectly.
 
 # ❗ More about splitting pages
 
 The image below shows two types of processing scripts for splitting and merging images, respectively. 
 
-"Automatic" scripts are configured in a way so that the user only needs to drag the image in question into the processing_folder, and the script will handle them one by one. You may want to use this type
+"Automatic" scripts are configured in a way so that the user only needs to drag the image in question into the processing folder, and the script will handle them one by one. You may want to use this type
 of script because the computer can process the image concurrently with the user when the user is selecting images to be processed. Yes, selecting the two-
 paged images are manual, and I haven't found a perfect automatic way to identify them. 
 
