@@ -1,4 +1,21 @@
-# 📄 Image Orientation Correction Workflow
+# ❓ What is this
+
+This repository includes a workflow that addresses common problems digital libraries encounter when archiving **images of corpora**. The common problem types are:
+1. Rotation correction in multiples of 90 degrees.
+2. Cropping the images so that a small fraction, or none, of the background remains.
+3. Safely splitting images into two, in case the image set contains two-pagers.
+
+The code is not wrapped in a UI yet, but the functionalities are all present (of course, future updates will be expected), even including QA and evaluation methods.
+This workflow uses ⚙️methods⚙️ such as
+1. Pre-processing using the EAST AI model,
+2. CNN categorization,
+3. Radon transform,
+4. Fourier transform,
+5. adaptive binarization,
+6. opening & closing,
+7. edge detection.
+
+# 📄 The Image correction workflow
 
 The image below illustrates the **five-step workflow** used in this project, along with their corresponding **visual representations** at each stage.
 
