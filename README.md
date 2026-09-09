@@ -1,3 +1,8 @@
+# ❗❗Updated repo branch👇
+
+This branch is used during the remediation task. However, updates were made afterwards for the IJDC paper submission.
+For the code base referred in the IJDC submission, select the **"IJDC_ready"** branch.
+
 # ❓ What is this
 
 This repository includes a workflow that addresses common problems digital libraries encounter when archiving **images of corpora**. The common problem types are:
