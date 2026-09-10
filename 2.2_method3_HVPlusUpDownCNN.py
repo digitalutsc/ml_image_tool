@@ -72,7 +72,7 @@ def parse_args():
     ap.add_argument("--ud-model", default="2.2_Up_Down.keras",
                     help="Up/Down binary CNN shipped in this workspace.")
     ap.add_argument("--hv-threshold", type=float, default=0.5,
-                    help="Scores below this count as horizontal (+-90).")
+                    help="Scores at or above this count as horizontal (+-90).")
     ap.add_argument("--ud-threshold", type=float, default=0.5,
                     help="Scores at or above this count as upside-down.")
     ap.add_argument("--invert-hv", action="store_true",
