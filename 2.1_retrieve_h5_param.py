@@ -58,8 +58,8 @@ def main():
         print("  score <  0.5 -> UPRIGHT      (rotation 0)")
         print("  score >= 0.5 -> UPSIDE-DOWN  (rotation 180)")
     elif "horizontal" in name:
-        print("  score <  0.5 -> HORIZONTAL   (rotation +-90)")
-        print("  score >= 0.5 -> VERTICAL     (rotation 0 or 180)")
+        print("  score <  0.5 -> VERTICAL page   (rotation 0 or 180)")
+        print("  score >= 0.5 -> HORIZONTAL page (rotation +-90)")
     else:
         print("  (single sigmoid output; meaning depends on training labels)")
 

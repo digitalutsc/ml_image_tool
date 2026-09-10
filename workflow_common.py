@@ -17,17 +17,21 @@ Every numbered script imports from here so that behaviour stays consistent:
          two models contain TFOpLambda layers that Keras 3 cannot
          deserialize from a legacy HDF5 model config.
 
-  2. Class semantics of the binary sigmoid models (threshold 0.5):
-       2.2_Horizontal_Vertical.keras  ->  P(vertical text axis).
-           score <  0.5 : HORIZONTAL  (image rotated +-90 deg)
-           score >= 0.5 : VERTICAL    (image at 0 or 180 deg)
-       2.2_Up_Down.keras              ->  P(upside-down).
-           score <  0.5 : UPRIGHT     (as documented in 2.1_CNN_Test.py:
-                                        "0 = Upright, 1 = Upside")
+  2. Class semantics of the binary sigmoid models (threshold 0.5), taken
+     from the ORIGINAL training recipes (ocr_hori_vs_vert.py pins its
+     labels with labels=[0,1,0,1] for the 0/90/180/270 CCW rotations and
+     y = class_index % 2; the up/down recipe documents "0 = Upright,
+     1 = Upside", echoed in 2.1_CNN_Test.py):
+       2.2_Horizontal_Vertical.keras  ->  P(page is +-90 deg, i.e. the text
+                                           lines run vertically):
+           score <  0.5 : VERTICAL page   (0 or 180 deg)
+           score >= 0.5 : HORIZONTAL page (+-90 deg)
+       2.2_Up_Down.keras              ->  P(upside-down):
+           score <  0.5 : UPRIGHT
            score >= 0.5 : UPSIDE-DOWN (needs a 180 deg rotation)
-     The naming convention is "A_vs_B" = {0: A, 1: B}.  Every rotation
-     script prints this legend at start-up and offers an --invert-* flag in
-     case a model was ever re-trained with swapped labels.
+     Every rotation script prints this legend at start-up and offers an
+     --invert-* flag in case a model was ever re-trained with swapped
+     labels; calibrate new checkpoints with 2.1_CNN_Test.py first.
 
   3. Robust image IO (numpy-buffered, so non-ASCII Windows paths work),
      the 2.1_CNN_Test.py preprocessing recipe, and the

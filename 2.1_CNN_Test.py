@@ -14,12 +14,12 @@ Class legend (threshold 0.5) — printed at start-up
 --------------------------------------------------
   2.2_Up_Down.keras             score < 0.5 -> UPRIGHT      (0)
                                 score >= 0.5 -> UPSIDE-DOWN  (1)  -> dumped
-  2.2_Horizontal_Vertical.keras score < 0.5 -> HORIZONTAL +-90 deg (0) -> dumped
-                                score >= 0.5 -> VERTICAL 0/180 deg (1)
+  2.2_Horizontal_Vertical.keras score < 0.5 -> VERTICAL page, 0/180 deg (0)
+                                score >= 0.5 -> HORIZONTAL page, +-90 deg (1) -> dumped
 
-Naming convention of the checkpoints is "A_vs_B" = {0: A, 1: B}; the
-up/down semantics are documented as "0 = Upright, 1 = Upside" in the
-original training recipe.
+Both mappings come from the original training recipes (ocr_hori_vs_vert.py
+pins the HV labels with [0,1,0,1] for the 0/90/180/270 CCW rotations; the
+up/down recipe documents "0 = Upright, 1 = Upside").
 
 HOW TO CALIBRATE before a big rotation run
 ------------------------------------------
@@ -59,7 +59,8 @@ from workflow_common import (
 
 MODEL_CLASSES = {
     "2.2_up_down.keras": ("upright", "upside-down"),
-    "2.2_horizontal_vertical.keras": ("horizontal (+-90 deg)", "vertical (0/180 deg)"),
+    "2.2_horizontal_vertical.keras": ("vertical page (0/180 deg)",
+                                      "horizontal page (+-90 deg)"),
 }
 
 

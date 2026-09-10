@@ -11,9 +11,11 @@ Expected training-data layout (class folders "0" and "1")
     <train_dir>/0/   NEGATIVE class of the model you fine-tune
     <train_dir>/1/   POSITIVE class of the model you fine-tune
 
-Class semantics (threshold 0.5 sigmoid head):
-    2.2_Up_Down.keras              0 = upright      1 = upside-down
-    2.2_Horizontal_Vertical.keras  0 = horizontal   1 = vertical
+Class semantics (threshold 0.5 sigmoid head), as pinned by the original
+training recipes (see 2.1_CNN_train.py):
+    2.2_Up_Down.keras              0 = upright page            1 = upside-down
+    2.2_Horizontal_Vertical.keras  0 = vertical page (0/180)   1 = horizontal page (+-90)
+                                  (0 = HorizontalText slices, 1 = VerticalText slices)
 
 Folder-name aliases are accepted for convenience:
     0: 0, neg, negative, up, upright, horizontal
@@ -49,8 +51,10 @@ from workflow_common import (
 )
 
 CLASS_ALIASES = {
-    0: {"0", "neg", "negative", "up", "upright", "horizontal"},
-    1: {"1", "pos", "positive", "down", "upside", "upside_down", "vertical"},
+    0: {"0", "neg", "negative", "up", "upright", "horizontaltext",
+        "horizontal_text", "horizontal", "0degree", "0degrees"},
+    1: {"1", "pos", "positive", "down", "upside", "upside_down",
+        "verticaltext", "vertical_text", "vertical", "180degree", "180degrees"},
 }
 
 

@@ -98,6 +98,7 @@ Steps 2, 3, 4 and 6 can run concurrently.
 | 5 | `2.1_sample_selection.py` | Takes every n-th image (or `_r` pair) of the flattened corpus as a training/fine-tuning sample. |
 | 6 | `2.1_slice_text_square.py` | …then slice that sample the same way. |
 | 7 | `2.1_fix_CNN.py` | One-off repair: rebuilds the MobileNetV2 binary-CNN recipe and transfers the weights (fixes `training=True` graphs and legacy saves that Keras 3 refuses to load). |
+| — | `2.1_CNN_train.py` | **Full training** (from scratch) of either binary CNN — `--mode hv` (HorizontalText=0 vs VerticalText=1) or `--mode ud` (0Degree=0 vs 180Degree=1), chosen by flag or interactive prompt. Labels are pinned explicitly, never by alphabetical folder order. |
 | — | `2.1_CNN_Test.py` | **Calibrate/validate** a binary CNN on slices of known orientation; also demonstrates the exact preprocessing + class semantics the rotation methods use. |
 | — | `2.1_CNN_finetune.py` | Fine-tunes `2.2_Horizontal_Vertical.keras` / `2.2_Up_Down.keras` from class folders `0/` and `1/`. No flip/rotate augmentation (it would corrupt the labels). |
 | — | `2.1_retrieve_h5_param.py` | Inspects any checkpoint (shapes, params, class legend). |
@@ -114,14 +115,17 @@ the two CNNs whose graphs contain TFOpLambda layers).
 | Model | Output (sigmoid, threshold 0.5) | Used by |
 |-------|--------------------------------|---------|
 | `2.1_best_projection_band_2.keras` | P(patch shows text lines). Input is a 256-length projection band. | `2.1_slice_text_square.py`, `2.2_0_mirror_text_slices.py` |
-| `2.2_Horizontal_Vertical.keras` | `< 0.5` → **HORIZONTAL** (±90°) · `≥ 0.5` → **VERTICAL** (0/180°) | method 3 phase 1 |
+| `2.2_Horizontal_Vertical.keras` | `< 0.5` → **VERTICAL page** (0/180°, text lines horizontal) · `≥ 0.5` → **HORIZONTAL page** (±90°, text lines vertical) | method 3 phase 1 |
 | `2.2_Up_Down.keras` | `< 0.5` → **UPRIGHT** · `≥ 0.5` → **UPSIDE-DOWN** (rotate 180) | method 2 phase 2, method 3 phase 2 |
 
-Naming convention `A_vs_B` = {0: A, 1: B}; the up/down meaning ("0 = Upright,
-1 = Upside") comes from the original training recipe and `2.1_CNN_Test.py`.
-If a re-trained checkpoint ever swaps labels, the rotation scripts offer
-`--invert-hv` / `--invert-ud` — but calibrate first with `2.1_CNN_Test.py`
-on slices whose orientation you know.
+Both binary mappings are pinned by the original training recipes — the HV
+recipe (`ocr_hori_vs_vert.py`, now mirrored by [`2.1_CNN_train.py`](2.1_CNN_train.py))
+labels the 0/90/180/270 CCW rotations `[0,1,0,1]`, so class 1 = ±90°; the
+UD recipe documents "0 = Upright, 1 = Upside". The mapping never depends on
+alphabetical folder order in this repo's trainers. If a re-trained
+checkpoint ever swaps labels, the rotation scripts offer `--invert-hv` /
+`--invert-ud` — but calibrate first with `2.1_CNN_Test.py` on slices whose
+orientation you know.
 
 ## 🔁 Mirror-lookup rotation (steps 8–11)
 

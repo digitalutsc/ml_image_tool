@@ -10,21 +10,22 @@ mirror slice, the matching ORIGINAL image in the flattened tree receives
 the exact same rotation.
 
 PHASE 1 - 2.2_Horizontal_Vertical.keras (batched, 2.1_CNN_Test.py
-preprocessing: RGB [0,1], 256x256, optional --crop-ratio):
-    score <  0.5 -> HORIZONTAL (rotation +-90)
+preprocessing: RGB [0,1], 256x256, optional --crop-ratio).  Per the original
+training recipe (ocr_hori_vs_vert.py), the node outputs P(page is +-90 deg):
+    score >= 0.5 -> HORIZONTAL page (rotation +-90)
                     -> rotate slice + original 90 deg COUNTER-CLOCKWISE
                        (a +90 page becomes 0, a 270 page becomes 180)
-    score >= 0.5 -> VERTICAL (0/180) -> untouched for now.
+    score <  0.5 -> VERTICAL page (0/180) -> untouched for now.
 
 PHASE 2 - 2.2_Up_Down.keras on the (now vertical) slices:
     score >= 0.5 -> UPSIDE-DOWN -> rotate slice + original by 180.
     score <  0.5 -> UPRIGHT     -> untouched.
 
-Class legend of the sigmoid outputs (naming convention "A_vs_B" = {0: A,
-1: B}; the up/down meaning "0 = Upright, 1 = Upside" comes from the
-original training recipe and 2.1_CNN_Test.py):
-    Horizontal_Vertical: 0 = HORIZONTAL (+-90) | 1 = VERTICAL (0/180)
-    Up_Down:             0 = UPRIGHT          | 1 = UPSIDE-DOWN
+Class legend of the sigmoid outputs, as pinned by the original training
+recipes (ocr_hori_vs_vert.py labels its 0/90/180/270 CCW rotations
+[0,1,0,1]; the up/down recipe documents "0 = Upright, 1 = Upside"):
+    Horizontal_Vertical: 0 = VERTICAL page (0/180 deg) | 1 = HORIZONTAL page (+-90 deg)
+    Up_Down:             0 = UPRIGHT                   | 1 = UPSIDE-DOWN
 If a checkpoint is ever re-trained with swapped labels, pass --invert-hv /
 --invert-ud, or calibrate first with 2.1_CNN_Test.py on slices whose
 orientation you know.
@@ -144,8 +145,11 @@ def main():
         sys.exit(1)
 
     hv_pos = "HORIZONTAL (+-90)" if not args.invert_hv else "VERTICAL (0/180)"
-    print("[Legend] HV CNN: score <  {:.2f} -> {} (rotate 90ccw)".format(
+    print("[Legend] HV CNN: score >= {:.2f} -> {} (rotate 90ccw)".format(
         args.hv_threshold, hv_pos))
+    print("[Legend] HV CNN: score <  {:.2f} -> {} (kept)".format(
+        args.hv_threshold,
+        "VERTICAL (0/180)" if not args.invert_hv else "HORIZONTAL (+-90)"))
     print("[Legend] UD CNN: score >= {:.2f} -> {} (rotate 180)".format(
         args.ud_threshold, "UPSIDE-DOWN" if not args.invert_ud else "UPRIGHT"))
 
@@ -165,7 +169,7 @@ def main():
     hv_model = load_binary_cnn(args.hv_model)
     hv_action, hv_keep = run_cnn_phase(
         "Phase 1 HV", hv_model, slices, args.hv_threshold, args.invert_hv,
-        positive_is_below=True, mirror_root=mirror_root,
+        positive_is_below=False, mirror_root=mirror_root,
         original_root=original_root, rotate_name="90ccw",
         dry_run=args.dry_run, workers=workers, batch_size=args.batch_size,
         crop_ratio=args.crop_ratio, rows=rows, rows_col0=1, rows_col1=2)
