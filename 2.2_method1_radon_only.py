@@ -1,7 +1,7 @@
 # This code determines whether the image is horizontal (+-90 degrees of rotation)
 # or vertical (0 or 180 degrees of rotation) by using radon transform.
 #
-# It is one of 4 approaches to deal with image rotation correction, to use this 
+# It is one of 2 approaches to deal with image rotation correction, to use this 
 # one, make sure that images in the set all have 90 degrees CCW or 270 degrees CCW!
 
 
