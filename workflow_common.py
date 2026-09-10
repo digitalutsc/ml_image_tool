@@ -51,10 +51,11 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 HDF5_MAGIC = b"\x89HDF\r\n\x1a\n"
 
 # NTFS allows at most 4,294,967,295 (2**32 - 1) files per folder.  Step 1
-# uses half of that as its default ceiling so that even a pathological
-# single folder stays well below the operating-system limit.
+# defaults to a much more conservative 2**13 (8,192) files per folder so the
+# numbered folders stay comfortably browsable in Explorer; change it with
+# --max-per-folder if you prefer fewer, larger folders.
 NTFS_MAX_FILES_PER_FOLDER = 2**32 - 1
-DEFAULT_MAX_FILES_PER_FOLDER = NTFS_MAX_FILES_PER_FOLDER // 2
+DEFAULT_MAX_FILES_PER_FOLDER = 2**13
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tif", ".tiff", ".webp"}
 

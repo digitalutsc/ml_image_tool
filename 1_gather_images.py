@@ -6,9 +6,9 @@ What it does
 ------------
 Walks the SOURCE folder tree recursively, flattens every image it finds into
 the DESTINATION folder as numbered sub-folders ("0", "1", "2", ...) of at
-most --max-per-folder files each (default: half of what Windows/NTFS allows
-per folder, i.e. (2**32 - 1) // 2), and renames every image to a globally
-unique enumerated name:
+most --max-per-folder files each (default: 2**13 = 8,192 files per folder,
+a conservative and Explorer-friendly size), and renames every image to a
+globally unique enumerated name:
 
     <destination>/<folder_index>@@!!!!!!@@<image_index:06d><original ext>
     e.g.  my_dest/0@@!!!!!!@@000123.tif      (file #123 lives in folder 0)
@@ -41,7 +41,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from workflow_common import (
     DEFAULT_MAX_FILES_PER_FOLDER,
     IMAGE_EXTS,
-    NTFS_MAX_FILES_PER_FOLDER,
     confirm,
     cpu_workers,
     prompt_if_missing,
@@ -71,8 +70,9 @@ def parse_args():
     ap.add_argument("--root", help="Absolute path of the ORIGINAL folder tree.")
     ap.add_argument("--dest", help="Absolute path of the DESTINATION (flattened) folder.")
     ap.add_argument("--max-per-folder", type=int, default=DEFAULT_MAX_FILES_PER_FOLDER,
-                    help=f"Maximum files per numbered sub-folder. Default = NTFS max "
-                         f"({NTFS_MAX_FILES_PER_FOLDER}) divided by 2.")
+                    help=f"Maximum files per numbered sub-folder. Default = 2**13 = "
+                         f"{DEFAULT_MAX_FILES_PER_FOLDER:,} (change if you prefer "
+                         f"fewer, larger folders).")
     ap.add_argument("--mode", choices=["move", "copy"], default="move",
                     help="'move' relocates the files (original tree becomes empty); "
                          "'copy' keeps the originals untouched but is slower and "
