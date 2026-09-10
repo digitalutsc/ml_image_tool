@@ -1,218 +1,222 @@
-# This script crops images by removing the background around the page in the center.
-# The assumption is that the page itself is brighter than the background, which
-# should be reasonable. 
+r"""
+STEP 12 of the workflow — background cropping of the rotation-corrected
+pages.
+
+What it does
+------------
+Crops the dark background around the (brighter) page in the centre of each
+image, adding a small safety margin so no page edge is ever clipped.  The
+detection pipeline per image is unchanged from the original script:
+
+    gray -> Otsu binarization -> morphological CLOSE (kills text contours)
+    -> morphological OPEN (kills specks) -> Canny edges -> largest contours
+    -> page borders + safety margin -> crop.
+
+Run it on the ROTATION-CORRECTED flattened tree (after whichever
+2.2_method* script you chose).  By default it crops IN PLACE; pass --save
+to write cropped copies elsewhere instead.
+
+Failure handling: images that cannot be processed (unreadable, or no
+contour detected at all) are MOVED to the error folder so they can be
+handled manually; they are also listed in a report CSV.
+
+Usage
+-----
+    python 3_cropping.py --folder "D:\flat"
+
+    # crop into a separate tree instead of in place
+    python 3_cropping.py --folder "D:\flat" --save "D:\flat_cropped"
+
+Omit an argument and the script will prompt you for it.
+"""
+
+import argparse
+import csv
+import os
+import shutil
+import sys
+import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 import cv2
 import numpy as np
-import os
-import time
-import shutil
 
-# C:\\D\\DSU\\Dragomans\\upright-corrected
-folder = 'C:\\D\\DSU\\Dragomans\\CNN-labelled-Dragomans - Copy\\CNN-labelled-Dragomans\\upright'
-save = folder #'C:\\D\\DSU\\Gunda_Gunde\\GG_new_media\\Asir Matira\\AM-010 save'
-error_folder = 'C:\\D\\DSU\\Dragomans'
+from workflow_common import (
+    cpu_workers,
+    gather_image_files,
+    prompt_if_missing,
+    read_image,
+    write_image,
+)
 
-# Load the image and pre-process it
-def cut_borders(img_path, filename, safe_denominator):
-    # There needs to be some padding around the image after cropping. The 
-    # safe_denominator variable does just that. It makes sure that there
-    # will be a distance of (img_height+img_width)/safe_denominator 
-    # between the strict cut and the actual padded cut
 
-    # Load the image
+def cut_borders(img_path, save_path, error_folder, safe_denominator):
+    """One image: detect the page and write the cropped result to save_path.
+    On failure the file is moved into error_folder.  Returns (path, status).
+    """
     try:
-        # Load the image
-        image = cv2.imread(img_path)
-
-        # Check if the image was loaded correctly
+        image = read_image(img_path)
         if image is None:
             raise ValueError("Image is corrupted or cannot be loaded.")
 
-        # Check the dimensions of the image
         if image.ndim == 3:
             h, w, _ = np.shape(image)
         else:
             h, w = np.shape(image)
+
+        # There needs to be some padding around the image after cropping.
+        # The safe_denominator guarantees a margin of (h+w)/safe_denominator
+        # between the strict cut and the actual padded cut.
         crop_safety_margin = (h + w) // safe_denominator
-        # Find whether or not the image has part of the other page
-        # If so, cut it off
+
         best_x_left = 0
         best_x_right = w - 1
         padding = 31
         top, bottom, left, right = padding, padding, padding, padding
-        # Add black padding (pixel value 0) around the image
-        black_padded_image = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=[0, 0, 0])
+        # Add black padding around the image so borders touch the frame
+        black_padded_image = cv2.copyMakeBorder(image, top, bottom, left, right,
+                                                cv2.BORDER_CONSTANT, value=[0, 0, 0])
         black_padded_image = cv2.cvtColor(black_padded_image, cv2.COLOR_BGR2GRAY)
-        _, binary_image = cv2.threshold(black_padded_image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        _, binary_image = cv2.threshold(black_padded_image, 0, 255,
+                                        cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         height, width = np.shape(binary_image)
         opening_width = (height + width) // 20
-        
+
         # Close the shape to eliminate any contours from texts
         kernel0 = np.ones((30, 30), np.uint8)
         dilated_image = cv2.morphologyEx(binary_image, cv2.MORPH_CLOSE, kernel0)
-        edges2 = cv2.Canny(dilated_image, 50, 120)
-        cv2.imwrite(f'{filename[4]}.jpg', edges2)
-        # Identify such page and cut it
-        # if np.sum(edges2[:, padding]) >= 2*255 ^ np.sum(edges2[:, - padding - 1]) >= 2*255:
-        #     print('incomplete page found')
-        #     if np.sum(edges2[:, 31]) > 2*255:
-        #         min_boundary_pixels = float('inf')
-        #         for x in range(0, w // 6):
-        #             # Count the number of boundary pixels this vertical line passes through
-        #             boundary_pixels = np.sum(edges2[:, padding + x])
-        #             # Update the best line if the current one passes through fewer boundary pixels
-        #             if boundary_pixels < min_boundary_pixels:
-        #                 min_boundary_pixels = boundary_pixels
-        #                 best_x_left = x
-        #     else:
-        #         min_boundary_pixels = float('inf')
-        #         for x in range(5 * w // 6, w - 1):
-        #             # Count the number of boundary pixels this vertical line passes through
-        #             boundary_pixels = np.sum(edges2[:, padding + x])
-        #             # Update the best line if the current one passes through fewer boundary pixels
-        #             if boundary_pixels < min_boundary_pixels:
-        #                 min_boundary_pixels = boundary_pixels
-        #                 best_x_right = x
-        #     print(f'------------------------------{max(best_x_left, w - 1 - best_x_right)}')
-        # Open the shape to eliminate any small bits connected with the main page
+
+        # Open the shape to eliminate small bits connected with the page
         kernel1 = np.ones((opening_width, opening_width), np.uint8)
         dilated_image = cv2.morphologyEx(dilated_image, cv2.MORPH_OPEN, kernel1)
 
-        # Canny edge detection
+        # Canny edges and contours
         edges1 = cv2.Canny(dilated_image, 50, 120)
-        # Find contours
         contours1, _ = cv2.findContours(edges1, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+        if not contours1:
+            raise ValueError("No contour detected - cannot find the page.")
         biggest_contour = max(contours1, key=cv2.contourArea)
         biggest_contour_area = cv2.contourArea(biggest_contour)
-        large_contours = [c for c in contours1 if cv2.contourArea(c) > biggest_contour_area // 3]
-        
-        # if 0.75 * cv2.contourArea(biggest_contour) < cv2.contourArea(biggest_contour2) < 0.93 * cv2.contourArea(biggest_contour):
-        #     green_mask = np.all(dilated_image == [0, 255, 0], axis = -1)
+        large_contours = [c for c in contours1
+                          if cv2.contourArea(c) > biggest_contour_area // 3]
 
-        #     # Left and right boundary
-        #     columns_with_contours = np.any(green_mask, axis = 0)
-        #     border1 = 1 + np.argmax(columns_with_contours) - padding
-        #     border2 = width - np.argmax(np.flip(columns_with_contours)) - padding
-
-        #     # Top and bottom boundary
-        #     rows_with_contours = np.any(green_mask, axis = 1)
-        #     border3 = 1 + np.argmax(rows_with_contours) - padding
-        #     border4 = height - np.argmax(np.flip(rows_with_contours)) - padding
-
-        # Draw contours on the original image
-        # Convert binary image back to BGR for contour drawing
+        # Draw the contours, then read the page borders off the drawn mask
         dilated_image = cv2.cvtColor(dilated_image, cv2.COLOR_GRAY2BGR)
         cv2.drawContours(dilated_image, large_contours, -1, (0, 255, 0), 2)
+        green_mask = np.all(dilated_image == [0, 255, 0], axis=-1)
 
-        green_mask = np.all(dilated_image == [0, 255, 0], axis = -1)
-
-        # Left and right boundary
-        columns_with_contours = np.any(green_mask, axis = 0)
+        columns_with_contours = np.any(green_mask, axis=0)
         border1 = 1 + np.argmax(columns_with_contours) - padding
         border2 = width - np.argmax(np.flip(columns_with_contours)) - padding
 
-        # Top and bottom boundary
-        rows_with_contours = np.any(green_mask, axis = 1)
+        rows_with_contours = np.any(green_mask, axis=1)
         border3 = 1 + np.argmax(rows_with_contours) - padding
         border4 = height - np.argmax(np.flip(rows_with_contours)) - padding
-
-        # border1 = 0
-        # border2 = width - 1 - 2 * padding
-        # border3 = 0
-        # border4 = height - 1 - 2 * padding
-
-        # for x in range(padding // 5 + 1, width):
-        #     # Count the number of boundary pixels this vertical line passes through
-        #     boundary_pixels = dilated_image[:, x * 5]
-
-        #     # Update the best line if the current one passes through fewer boundary pixels
-        #     if any(np.array_equal(pixel, [0, 255, 0]) for pixel in boundary_pixels):
-        #         if x == padding // 5 + 1:
-        #             border1 = 0
-        #             break
-        #         else:
-        #             border1 = (x - 1) * 5 - padding
-        #             print(f"cropped, left, {border1} pixels cut")
-        #             break
-
-        # for x in range(padding // 5 + 1, width):
-        #     # Count the number of boundary pixels this vertical line passes through
-        #     boundary_pixels = dilated_image[:, width - 1 - x * 5]
-
-        #     # Update the best line if the current one passes through fewer boundary pixels
-        #     if any(np.array_equal(pixel, [0, 255, 0]) for pixel in boundary_pixels):
-        #         if x == padding // 5 + 1:
-        #             border2 = width - 1 - 2 * padding
-        #             break
-        #         else:
-        #             border2 = width - 1 - padding - (x - 1) * 5
-        #             print(f"cropped, right, {width - 1 - border2} pixels cut")
-        #             break
-
-        # for x in range(padding // 5 + 1, height):
-        #     # Count the number of boundary pixels this vertical line passes through
-        #     boundary_pixels = dilated_image[x * 5, :]
-
-        #     # Update the best line if the current one passes through fewer boundary pixels
-        #     if any(np.array_equal(pixel, [0, 255, 0]) for pixel in boundary_pixels):
-        #         if x == padding // 5 + 1:
-        #             border3 = 0
-        #             break
-        #         else:
-        #             border3 = (x - 1) * 5 - padding
-        #             print(f"cropped, up, {border3} pixels cut")
-        #             break
-
-        # for x in range(padding // 5 + 1, height):
-        #     # Count the number of boundary pixels this vertical line passes through
-        #     boundary_pixels = dilated_image[height - 1 - x * 5, :]
-
-        #     # Update the best line if the current one passes through fewer boundary pixels
-        #     if any(np.array_equal(pixel, [0, 255, 0]) for pixel in boundary_pixels):
-        #         if x == padding // 5 + 1:
-        #             border4 = height - 1 - 2 * padding
-        #             break
-        #         else:
-        #             border4 = height - 1 - padding - (x - 1) * 5
-        #             print(f"cropped, down, {height - 1 - border4} pixels cut")
-        #             break
 
         if border1 < best_x_left:
             border1 = best_x_left
         if border2 > best_x_right:
             border2 = best_x_right
-        image = image[max(0, border3 - crop_safety_margin) : min(border4 + 1 + crop_safety_margin, h),
-                       max(0, border1 - crop_safety_margin) : min(border2 + 1 + crop_safety_margin, w)]
-        
-        # draw red cropping borders on the dialated image and write it. This step is used to debug indexing
-        # cv2.line(dilated_image, (border1 + padding, 0), (border1 + padding, height - 1), (0, 0, 255), thickness = 2)
-        # cv2.line(dilated_image, (border2 + 1 + padding, 0), (border2 + 1 + padding, height - 1), (0, 0, 255), thickness = 2)
-        # cv2.line(dilated_image, (0, border3 + padding), (width - 1, border3 + padding), (0, 0, 255), thickness = 2)
-        # cv2.line(dilated_image, (0, border4 + 1 + padding), (width - 1, border4 + 1 + padding), (0, 0, 255), thickness = 2)
 
-        # new_name2 = filename.split('.')[0] + '8' + '.' + filename.split('.')[1]
-        # save_path2 = os.path.join(save, new_name2)
-        # cv2.imwrite(save_path2, dilated_image)
+        cropped = image[max(0, border3 - crop_safety_margin):
+                        min(border4 + 1 + crop_safety_margin, h),
+                        max(0, border1 - crop_safety_margin):
+                        min(border2 + 1 + crop_safety_margin, w)]
 
-        new_name1 = filename
-        save_path1 = os.path.join(save, new_name1)
-        cv2.imwrite(save_path1, image, [cv2.IMWRITE_JPEG_QUALITY, 100])
-    except Exception as e:
-        print(f"Error processing image {img_path}: {e}") # Normally an error is reported when no contour is detected
-        # Move the corrupted image to the error folder
-        error_path = os.path.join(error_folder, os.path.basename(img_path))
-        shutil.move(img_path, error_path)
-        print(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Moved corrupted image to {error_path}")
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        if not write_image(save_path, cropped, jpeg_quality=100):
+            raise ValueError("Failed to write the cropped image.")
+        return img_path, "cropped"
+    except Exception as exc:  # noqa: BLE001 - original behaviour: move & report
+        try:
+            os.makedirs(error_folder, exist_ok=True)
+            shutil.move(img_path, os.path.join(error_folder, os.path.basename(img_path)))
+        except Exception as move_exc:  # noqa: BLE001
+            exc = f"{exc} | additionally, moving to error folder failed: {move_exc}"
+        return img_path, f"error: {exc}"
 
-i = 0
-for filename in os.listdir(folder):
-    imgpath = os.path.join(folder, filename)
-    start_time = time.time()
-    if filename.endswith(('.jpg', '.jpeg', '.JPEG', '.JPG', '.png', '.gif', '.tif', 'TIF')):
-        i += 1
-        print(f'{filename}')
-        cut_borders(imgpath, filename, 95)
-    end_time = time.time()
-    execution_time = end_time - start_time
-    print(f"{execution_time} seconds")
+
+def parse_args():
+    ap = argparse.ArgumentParser(
+        description="Step 12: crop the background around each page.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    ap.add_argument("--folder",
+                    help="Rotation-corrected flattened tree (recursive).")
+    ap.add_argument("--save", default=None,
+                    help="Where to write cropped images. Default: crop IN PLACE. "
+                         "When set, the sub-folder structure is preserved.")
+    ap.add_argument("--error-folder", default=None,
+                    help="Where problem images are moved. Default: <folder>/_cropping_errors.")
+    ap.add_argument("--safe-denominator", type=int, default=95,
+                    help="Bigger value = tighter crop; smaller = more margin "
+                         "((h+w)/value of safety margin pixels).")
+    ap.add_argument("--workers", type=int, default=None,
+                    help="Parallel processes. Default: all CPU cores.")
+    return ap.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    folder = prompt_if_missing(args.folder, "Folder of rotation-corrected images")
+    if not folder or not os.path.isdir(folder):
+        print(f"[Error] Folder not found: {folder}")
+        sys.exit(1)
+    folder = os.path.abspath(folder)
+
+    save_root = os.path.abspath(args.save) if args.save else folder
+    error_folder = os.path.abspath(args.error_folder) if args.error_folder \
+        else os.path.join(folder, "_cropping_errors")
+    workers = cpu_workers(args.workers)
+
+    images = gather_image_files(folder)
+    # Never re-process the error folder itself if it lives inside the tree.
+    images = [p for p in images if not p.startswith(error_folder + os.sep)]
+    if not images:
+        print(f"[Error] No images found under {folder}")
+        sys.exit(1)
+
+    print(f"[Info] {len(images):,} image(s) | output: "
+          f"{'IN PLACE' if save_root == folder else save_root} | "
+          f"error folder: {error_folder} | workers: {workers}")
+
+    tasks = []
+    for path in images:
+        if save_root == folder:
+            save_path = path
+        else:
+            rel = os.path.relpath(path, folder)
+            save_path = os.path.join(save_root, rel)
+        tasks.append((path, save_path, error_folder, args.safe_denominator))
+
+    cropped = errors = 0
+    report_path = os.path.join(error_folder, "_cropping_report.csv")
+    start = time.time()
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(cut_borders, *t) for t in tasks]
+        for i, fut in enumerate(as_completed(futures), start=1):
+            path, status = fut.result()
+            if status == "cropped":
+                cropped += 1
+            else:
+                errors += 1
+                os.makedirs(error_folder, exist_ok=True)
+                with open(report_path, "a", newline="", encoding="utf-8-sig") as f:
+                    csv.writer(f).writerow([path, status])
+            if i % 100 == 0 or i == len(tasks):
+                eta = (time.time() - start) / i * (len(tasks) - i)
+                print(f"[Progress] {i:,}/{len(tasks):,} | cropped {cropped:,} | "
+                      f"errors {errors:,} | ETA {eta:,.0f}s")
+
+    print("-" * 60)
+    print(f"[Done] Cropped {cropped:,} image(s); {errors:,} moved to the error "
+          f"folder ({error_folder}).")
+    if errors:
+        print(f"[Report] {report_path}")
+    print("[Next] Step 13: the split/merge QA scripts with prefix 4_ "
+          "(see README), then 5_folder_tree_reconstruction.py.")
+
+
+if __name__ == "__main__":
+    main()
