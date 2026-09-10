@@ -1,0 +1,36 @@
+# =====================================================================
+# Requirements for the ml_image_tool image-correction workflow
+#
+# Target environment : Python 3.10, run in ANACONDA PROMPT started as
+#                      ADMINISTRATOR (see README.md)
+#
+# Create the environment once:
+#   conda create -n ml_image_tool python=3.10
+#   conda activate ml_image_tool
+#   pip install -r requirements.txt
+# =====================================================================
+
+# --- Core (required by the main pipeline: steps 1, 8-12, 14) ----------
+numpy                 # array math, used by every processing script
+opencv-python         # cv2: image IO, rotation, morphology, contours
+tensorflow            # loads 2.1_best_projection_band_2.keras,
+                      # 2.2_Horizontal_Vertical.keras, 2.2_Up_Down.keras
+scikit-image          # skimage.transform.radon (rotation methods 1 & 2)
+
+# --- Step 4 split/merge QA scripts (4_*_split / 4_*_merge) ------------
+watchdog              # folder watchers used by the automatic scripts
+
+# --- Optional training-data preparation (2.1_*) -----------------------
+Pillow                # jpg conversion (2.1_to_jpg) and slice generation
+tqdm                  # progress bars in 2.1_text_slice_augmentation.py
+augraphy              # document-image augmentation for 2.1_text_slice_
+                      # generatorV2.py / 2.1_text_slice_augmentation.py
+                      # (also pulls in numba)
+
+# --- Truly optional ----------------------------------------------------
+# parabolic            # only used by 2.2_radonMethod_successRate_test.py
+#                      # for slightly sharper peak finding; the script runs
+#                      # fine without it. Install with: pip install parabolic
+
+# NOTE: pandas is NOT required anymore (5_folder_tree_reconstruction.py
+# now reads the mapping CSV with the standard-library csv module).

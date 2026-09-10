@@ -26,6 +26,26 @@ means running the files in prefix order (`1_`, `2.1_`, `2.2_0_`, `2.2_method1/2/
 arguments, scale their threading to your CPU core count, and write CSV reports
 next to the data they touch.
 
+# ⚙️ Requirements & how to run
+
+* **Python 3.10** — the workflow must be run with Python 3.10.
+* **Anaconda Prompt in Administrator mode** — open Anaconda Prompt by
+  right-clicking it and choosing *Run as administrator* (the file-moving,
+  rotation and watchdog steps need the elevated permissions on Windows),
+  then run every script from the repository folder inside that prompt.
+
+Set the environment up once (in the Administrator Anaconda Prompt):
+
+```
+conda create -n ml_image_tool python=3.10
+conda activate ml_image_tool
+pip install -r requirements.txt
+```
+
+All third-party packages (numpy, opencv-python, tensorflow, scikit-image,
+Pillow, watchdog, tqdm, augraphy) are listed with explanations in
+[`requirements.txt`](requirements.txt).
+
 # 🚦 Step 0 — BACK UP FIRST
 
 **Make a complete copy of your original folder tree before running anything.**
