@@ -2,9 +2,9 @@ r"""
 FINE-TUNING helper for the two binary orientation CNNs — the second half of
 optional step 5 (sample selection -> slice -> fine-tune).
 
-It fine-tunes 2.2_Horizontal_Vertical.keras or 2.2_Up_Down.keras with extra
-labelled text slices (e.g. produced by optional steps 2/4/6: artificial
-slices, RVL slices, or slices of your own corpus sample).
+It fine-tunes 2.2_Horizontal_Vertical_retrained.keras or 2.2_Up_Down.keras
+with extra labelled text slices (e.g. produced by optional steps 2/4/6:
+artificial slices, RVL slices, or slices of your own corpus sample).
 
 Expected training-data layout (class folders "0" and "1")
 ---------------------------------------------------------
@@ -14,7 +14,8 @@ Expected training-data layout (class folders "0" and "1")
 Class semantics (threshold 0.5 sigmoid head), as pinned by the original
 training recipes (see 2.1_CNN_train.py):
     2.2_Up_Down.keras              0 = upright page            1 = upside-down
-    2.2_Horizontal_Vertical.keras  0 = vertical page (0/180)   1 = horizontal page (+-90)
+    2.2_Horizontal_Vertical_retrained.keras
+                                  0 = vertical page (0/180)   1 = horizontal page (+-90)
                                   (0 = HorizontalText slices, 1 = VerticalText slices)
 
 Folder-name aliases are accepted for convenience:
@@ -64,7 +65,8 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     ap.add_argument("--model", default="2.2_Up_Down.keras",
-                    help="Base model: 2.2_Up_Down.keras or 2.2_Horizontal_Vertical.keras.")
+                    help="Base model: 2.2_Up_Down.keras or "
+                         "2.2_Horizontal_Vertical_retrained.keras.")
     ap.add_argument("--train-dir",
                     help="Folder with the two class sub-folders (see module docstring).")
     ap.add_argument("--out", default=None,

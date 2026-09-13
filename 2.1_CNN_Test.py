@@ -1,6 +1,6 @@
 r"""
 VALIDATION / CALIBRATION helper for the two binary orientation CNNs
-(2.2_Horizontal_Vertical.keras and 2.2_Up_Down.keras).
+(2.2_Horizontal_Vertical_retrained.keras and 2.2_Up_Down.keras).
 
 What it does
 ------------
@@ -14,8 +14,11 @@ Class legend (threshold 0.5) — printed at start-up
 --------------------------------------------------
   2.2_Up_Down.keras             score < 0.5 -> UPRIGHT      (0)
                                 score >= 0.5 -> UPSIDE-DOWN  (1)  -> dumped
-  2.2_Horizontal_Vertical.keras score < 0.5 -> VERTICAL page, 0/180 deg (0)
+  2.2_Horizontal_Vertical_retrained.keras
+                                score < 0.5 -> VERTICAL page, 0/180 deg (0)
                                 score >= 0.5 -> HORIZONTAL page, +-90 deg (1) -> dumped
+                                (verified empirically: 0/180 pages score ~0.0,
+                                 +-90 pages score ~1.0)
 
 Both mappings come from the original training recipes (ocr_hori_vs_vert.py
 pins the HV labels with [0,1,0,1] for the 0/90/180/270 CCW rotations; the
@@ -28,8 +31,9 @@ HOW TO CALIBRATE before a big rotation run
 2. Run this script on that folder with --model 2.2_Up_Down.keras.
    If "Upright Images" is far below ~100%, either the model is weak on your
    data or the classes are swapped — try --invert and re-run.
-3. Repeat with --model 2.2_Horizontal_Vertical.keras on slices you know are
-   vertical (upright text): the accuracy line then reads "vertical" images.
+3. Repeat with --model 2.2_Horizontal_Vertical_retrained.keras on slices you
+   know are vertical pages (upright text): the accuracy line then reads
+   "vertical page" images.
 
 Usage
 -----
@@ -59,6 +63,8 @@ from workflow_common import (
 
 MODEL_CLASSES = {
     "2.2_up_down.keras": ("upright", "upside-down"),
+    "2.2_horizontal_vertical_retrained.keras": ("vertical page (0/180 deg)",
+                                                "horizontal page (+-90 deg)"),
     "2.2_horizontal_vertical.keras": ("vertical page (0/180 deg)",
                                       "horizontal page (+-90 deg)"),
 }
@@ -70,7 +76,8 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     ap.add_argument("--model", default="2.2_Up_Down.keras",
-                    help="Model to test: 2.2_Up_Down.keras or 2.2_Horizontal_Vertical.keras "
+                    help="Model to test: 2.2_Up_Down.keras or "
+                         "2.2_Horizontal_Vertical_retrained.keras "
                          "(resolved inside this workspace by default).")
     ap.add_argument("--src", help="Folder of images to score (recursed).")
     ap.add_argument("--dump", help="Folder that collects images classified as the "

@@ -11,8 +11,9 @@ WHEN TO USE — two telltale situations:
    statistics instead of the learned moving mean/variance at inference.
 
 2. LEGACY CHECKPOINTS that modern Keras refuses to load (this includes the
-   shipped 2.2_Horizontal_Vertical.keras / 2.2_Up_Down.keras, whose HDF5
-   payloads contain TFOpLambda layers).  This script rebuilds the exact
+   shipped 2.2_Horizontal_Vertical_retrained.keras / 2.2_Up_Down.keras and
+   any checkpoint saved by a Keras 2 environment, whose HDF5 payloads
+   contain TFOpLambda layers).  This script rebuilds the exact
    architecture cleanly and transfers ALL trained weights (including BN
    moving statistics) — no retraining required.
 

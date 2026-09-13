@@ -115,7 +115,7 @@ the two CNNs whose graphs contain TFOpLambda layers).
 | Model | Output (sigmoid, threshold 0.5) | Used by |
 |-------|--------------------------------|---------|
 | `2.1_best_projection_band_2.keras` | P(patch shows text lines). Input is a 256-length projection band. | `2.1_slice_text_square.py`, `2.2_0_mirror_text_slices.py` |
-| `2.2_Horizontal_Vertical.keras` | `< 0.5` → **VERTICAL page** (0/180°, text lines horizontal) · `≥ 0.5` → **HORIZONTAL page** (±90°, text lines vertical) | method 3 phase 1 |
+| `2.2_Horizontal_Vertical_retrained.keras` | `< 0.5` → **VERTICAL page** (0/180°, text lines horizontal) · `≥ 0.5` → **HORIZONTAL page** (±90°, text lines vertical). Verified empirically: 0/180° pages score ≈0.0, ±90° pages ≈1.0. | method 3 phase 1 |
 | `2.2_Up_Down.keras` | `< 0.5` → **UPRIGHT** · `≥ 0.5` → **UPSIDE-DOWN** (rotate 180) | method 2 phase 2, method 3 phase 2 |
 
 Both binary mappings are pinned by the original training recipes — the HV

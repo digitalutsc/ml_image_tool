@@ -39,8 +39,11 @@ from the original:
     NOT suffer from the batch-statistics bug that 2.1_fix_CNN.py exists to
     repair in the legacy checkpoints.
 
-3.  The best checkpoint is saved as a NATIVE .keras (zip) file next to the
-    scripts (or into --out-dir), so every workflow script loads it directly.
+3.  The best checkpoint is saved as a .keras file next to the scripts (or
+    into --out-dir).  Under Keras 3 this is a native zip; note that older
+    Keras 2 environments save HDF5 regardless of the extension —
+    workflow_common.py loads BOTH transparently, including the TFOpLambda
+    rebuild fallback.
 
 Expected data layout (either works, prompts cover the rest):
 

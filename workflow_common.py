@@ -6,8 +6,8 @@ Every numbered script imports from here so that behaviour stays consistent:
 
   1. Smart Keras model loading.
      The three models shipped in this repo (2.1_best_projection_band_2.keras,
-     2.2_Horizontal_Vertical.keras, 2.2_Up_Down.keras) are LEGACY HDF5
-     payloads that were given a ".keras" extension.  Keras 3 refuses to open
+     2.2_Horizontal_Vertical_retrained.keras, 2.2_Up_Down.keras) are LEGACY
+     HDF5 payloads that were given a ".keras" extension.  Keras 3 refuses to open
      HDF5 content through the ".keras" (zip) code path, so:
        * load_keras_model() transparently copies HDF5 payloads to a
          temporary ".h5" file and loads that, and
@@ -22,7 +22,8 @@ Every numbered script imports from here so that behaviour stays consistent:
      labels with labels=[0,1,0,1] for the 0/90/180/270 CCW rotations and
      y = class_index % 2; the up/down recipe documents "0 = Upright,
      1 = Upside", echoed in 2.1_CNN_Test.py):
-       2.2_Horizontal_Vertical.keras  ->  P(page is +-90 deg, i.e. the text
+       2.2_Horizontal_Vertical_retrained.keras
+                                    ->  P(page is +-90 deg, i.e. the text
                                            lines run vertically):
            score <  0.5 : VERTICAL page   (0 or 180 deg)
            score >= 0.5 : HORIZONTAL page (+-90 deg)
@@ -156,7 +157,7 @@ def load_keras_model(path, verbose=True):
 
 def load_binary_cnn(path, img_size=(256, 256), verbose=True):
     """Load one of the two binary orientation CNNs
-    (2.2_Horizontal_Vertical.keras / 2.2_Up_Down.keras).
+    (2.2_Horizontal_Vertical_retrained.keras / 2.2_Up_Down.keras).
 
     Tries a normal load first; if the legacy HDF5 config cannot be
     deserialized by Keras 3 (TFOpLambda layers), rebuilds the architecture

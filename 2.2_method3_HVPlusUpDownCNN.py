@@ -1,6 +1,7 @@
 r"""
 STEP 11 — Rotation correction, OPTION 3 of 3: two CNNs
-(2.2_Horizontal_Vertical.keras for +-90, then 2.2_Up_Down.keras for 180).
+(2.2_Horizontal_Vertical_retrained.keras for +-90, then
+2.2_Up_Down.keras for 180).
 
 How it works
 ------------
@@ -9,7 +10,7 @@ Runs on the MIRROR tree (step 8) with the same mirror-lookup logic as
 mirror slice, the matching ORIGINAL image in the flattened tree receives
 the exact same rotation.
 
-PHASE 1 - 2.2_Horizontal_Vertical.keras (batched, 2.1_CNN_Test.py
+PHASE 1 - 2.2_Horizontal_Vertical_retrained.keras (batched, 2.1_CNN_Test.py
 preprocessing: RGB [0,1], 256x256, optional --crop-ratio).  Per the original
 training recipe (ocr_hori_vs_vert.py), the node outputs P(page is +-90 deg):
     score >= 0.5 -> HORIZONTAL page (rotation +-90)
@@ -67,7 +68,7 @@ def parse_args():
     )
     ap.add_argument("--mirror", help="Mirror tree built by 2.2_0_mirror_text_slices.py.")
     ap.add_argument("--original", help="Flattened original tree from step 1.")
-    ap.add_argument("--hv-model", default="2.2_Horizontal_Vertical.keras",
+    ap.add_argument("--hv-model", default="2.2_Horizontal_Vertical_retrained.keras",
                     help="Horizontal/Vertical binary CNN shipped in this workspace.")
     ap.add_argument("--ud-model", default="2.2_Up_Down.keras",
                     help="Up/Down binary CNN shipped in this workspace.")
